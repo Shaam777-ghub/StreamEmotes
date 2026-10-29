@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 enum TwitchChatSender {
     static func send(_ text:String,channel:String,auth:TwitchAuthService) async throws {
         guard auth.signedIn else { throw NSError(domain:"StreamEmotes",code:1,userInfo:[NSLocalizedDescriptionKey:"Сначала войди в Twitch"]) }
