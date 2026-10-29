@@ -1,0 +1,21 @@
+name: StreamEmotes
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: '17.0'
+targets:
+  StreamEmotes:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.StreamEmotes
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        SWIFT_VERSION: 5.9
+        TARGETED_DEVICE_FAMILY: '1,2'
+        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads: NO
+        ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES

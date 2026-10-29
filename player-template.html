@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;background:#000">
+<div id="frame"></div>
+<script>
+const channel = new URLSearchParams(location.search).get('channel') || 'twitch';
+if (/^[a-zA-Z0-9_]{1,25}$/.test(channel)) {
+  const iframe = document.createElement('iframe');
+  const u = new URL('https://player.twitch.tv/');
+  u.searchParams.set('channel', channel);
+  u.searchParams.set('parent', location.hostname);
+  u.searchParams.set('autoplay', 'false');
+  iframe.src = u.toString();
+  iframe.allow = 'autoplay; fullscreen';
+  iframe.allowFullscreen = true;
+  iframe.setAttribute('scrolling', 'no');
+  iframe.style.cssText = 'width:100%;height:100vh;border:0';
+  document.getElementById('frame').appendChild(iframe);
+}
+</script></body></html>
