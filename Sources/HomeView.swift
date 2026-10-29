@@ -91,8 +91,14 @@ struct StreamView: View {
     let channel: String
     let twitchUserID: String
     @StateObject private var chat = ChatService()
+    @StateObject private var cosmetics = SevenTVCosmetics()
     @State private var emotes: [String: Emote] = [:]
     @State private var showEmotes = false
+    @AppStorage("chatShowBadges") private var showBadges = true
+    @AppStorage("chatSevenTVPaints") private var showSevenTVPaints = true
+    @AppStorage("chatSevenTVBadges") private var showSevenTVBadges = true
+    @AppStorage("chatHighlightMentions") private var highlightMentions = true
+    @AppStorage("chatRespectNameColors") private var respectNameColors = true
     var body: some View {
         VStack(spacing: 0) {
             PlayerView(channel: channel)
@@ -102,6 +108,13 @@ struct StreamView: View {
                 Circle().fill(chat.connected ? .green : .gray).frame(width: 8, height: 8)
                 Text("7TV / BTTV: \(emotes.count)")
                     .font(.caption2).foregroundStyle(.secondary)
+                Menu {
+                    Toggle("Значки Twitch", isOn: $showBadges)
+                    Toggle("Значки 7TV", isOn: $showSevenTVBadges)
+                    Toggle("Paints 7TV", isOn: $showSevenTVPaints)
+                    Toggle("Цвета никнеймов Twitch", isOn: $respectNameColors)
+                    Toggle("Подсветка упоминаний", isOn: $highlightMentions)
+                } label: { Image(systemName: "textformat") }
                 Button { showEmotes.toggle() } label: { Image(systemName: "face.smiling") }
             }.padding(.horizontal).padding(.vertical, 10)
             Divider()
@@ -109,7 +122,8 @@ struct StreamView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
                         ForEach(chat.messages) { message in
-                            ChatRow(message: message, emotes: emotes).id(message.id)
+                            ChatRow(message: message, emotes: emotes, showBadges: showBadges, respectNameColors: respectNameColors, highlightMentions: highlightMentions, currentUser: auth.userName, sevenTVStyle: cosmetics.style(for: message.userID), sevenTVPaints: showSevenTVPaints, sevenTVBadges: showSevenTVBadges).id(message.id)
+                                .onAppear { cosmetics.request(message.userID) }
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(12)
                 }
@@ -136,6 +150,7 @@ struct StreamView: View {
         .navigationTitle(channel)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: channel + twitchUserID) {
+            cosmetics.reset()
             chat.connect(channel: channel)
             emotes = await EmoteService().load(channel: channel, twitchUserID: twitchUserID)
         }
@@ -172,14 +187,65 @@ struct StreamView: View {
 private struct ChatRow: View {
     let message: ChatMessage
     let emotes: [String: Emote]
+    let showBadges: Bool
+    let respectNameColors: Bool
+    let highlightMentions: Bool
+    let currentUser: String
+    let sevenTVStyle: SevenTVStyle?
+    let sevenTVPaints: Bool
+    let sevenTVBadges: Bool
+
+    private var isMention: Bool {
+        guard highlightMentions, !currentUser.isEmpty else { return false }
+        return message.text.localizedCaseInsensitiveContains("@" + currentUser)
+    }
+    private var nickColor: Color {
+        guard respectNameColors, let hex = message.color, hex.hasPrefix("#"), hex.count == 7,
+              let value = UInt32(hex.dropFirst(), radix: 16) else { return .purple }
+        return Color(red: Double((value >> 16) & 255) / 255,
+                     green: Double((value >> 8) & 255) / 255,
+                     blue: Double(value & 255) / 255)
+    }
     var body: some View {
         if message.isSystem { Text(message.text).font(.caption).foregroundStyle(.secondary) }
         else {
-            // Wrapping via SwiftUI Text; image tokens currently rendered as a horizontal flow.
             VStack(alignment: .leading, spacing: 3) {
-                Text(message.author + ":").font(.caption.bold()).foregroundStyle(.purple)
+                HStack(spacing: 4) {
+                    if showBadges {
+                        ForEach(message.badges, id: \.self) { badge in
+                            Text(badgeLabel(badge))
+                                .font(.system(size: 9, weight: .bold))
+                                .padding(.horizontal, 3).padding(.vertical, 2)
+                                .background(Color.secondary.opacity(0.2), in: RoundedRectangle(cornerRadius: 3))
+                                .accessibilityLabel("Twitch: " + badge)
+                        }
+                    }
+                    if sevenTVBadges, let badgeURL = sevenTVStyle?.badgeURL {
+                        AsyncImage(url: badgeURL) { image in
+                            image.resizable().scaledToFit()
+                        } placeholder: { EmptyView() }
+                        .frame(width: 18, height: 18)
+                        .accessibilityLabel("7TV: " + (sevenTVStyle?.badgeName ?? "Badge"))
+                    }
+                    SevenTVNickname(name: message.author + ":", fallback: nickColor,
+                        cosmetic: sevenTVPaints ? sevenTVStyle : nil)
+                }
                 FlowTokens(text: message.text, emotes: emotes)
             }
+            .padding(.horizontal, isMention ? 6 : 0)
+            .padding(.vertical, isMention ? 4 : 0)
+            .background(isMention ? Color.yellow.opacity(0.15) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+        }
+    }
+    private func badgeLabel(_ badge: String) -> String {
+        switch badge {
+        case "broadcaster": return "LIVE"
+        case "moderator": return "MOD"
+        case "vip": return "VIP"
+        case "subscriber": return "SUB"
+        case "founder": return "1st"
+        case "staff": return "STAFF"
+        default: return badge.uppercased().prefix(5).description
         }
     }
 }
