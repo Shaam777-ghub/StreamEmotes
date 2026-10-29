@@ -1,0 +1,305 @@
+name: Capture StreamEmotes iPhone screenshot
+
+on:
+  push:
+    paths:
+      - '.github/workflows/capture-screenshot.yml'
+  workflow_dispatch:
+    inputs:
+      screen:
+        description: "Screen to capture"
+        required: true
+        default: "player"
+        type: choice
+        options:
+          - player
+          - home
+      channel:
+        description: "Twitch channel for player screenshot"
+        required: true
+        default: "forsen"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  screenshot:
+    name: iOS Simulator screenshot
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    steps:
+      - name: Checkout StreamEmotes source
+        uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Use Player v2 for Simulator preview only
+        shell: bash
+        run: |
+          python3 - <<'PYCODE'
+          import base64
+          from pathlib import Path
+          data = base64.b64decode(''.join("""
+          aW1wb3J0IFN3aWZ0VUkKaW1wb3J0IFdlYktpdAoKLy8vIENvbnRyb2xzIGFyZSBkZWxpYmVyYXRlbHkgb3V0c2lkZSB0aGUgb2ZmaWNp
+          YWwgVHdpdGNoIHZpZGVvIGZyYW1lLgovLy8gVGhlIGlmcmFtZSBpcyBob3N0ZWQgb24gYSByZWFsIEhUVFBTIGRvbWFpbiBzbyBUd2l0
+          Y2ggY2FuIHZlcmlmeSBpdHMgcGFyZW50LgpzdHJ1Y3QgUGxheWVyVmlldzogVmlldyB7CiAgICBsZXQgY2hhbm5lbDogU3RyaW5nCiAg
+          ICBAQXBwU3RvcmFnZSgicGxheWVyQmFzZVVSTCIpIHByaXZhdGUgdmFyIHBsYXllckJhc2VVUkwgPSAiIgogICAgQFN0YXRlT2JqZWN0
+          IHByaXZhdGUgdmFyIHBsYXllciA9IFN0cmVhbVBsYXllclN0YXRlKCkKICAgIEBTdGF0ZSBwcml2YXRlIHZhciBzaG93RnVsbHNjcmVl
+          biA9IGZhbHNlCiAgICBARW52aXJvbm1lbnQoXC5vcGVuVVJMKSBwcml2YXRlIHZhciBvcGVuVVJMCgogICAgcHJpdmF0ZSB2YXIgcGxh
+          eWVyVVJMOiBVUkw/IHsKICAgICAgICBsZXQgZGVmYXVsdEJhc2UgPSAiaHR0cHM6Ly9zaGFhbTc3Ny1naHViLmdpdGh1Yi5pby9TdHJl
+          YW1FbW90ZXMvcGxheWVyLyIKICAgICAgICBsZXQgYmFzZSA9IHBsYXllckJhc2VVUkwudHJpbW1pbmdDaGFyYWN0ZXJzKGluOiAud2hp
+          dGVzcGFjZXNBbmROZXdsaW5lcykKICAgICAgICBndWFyZCBjaGFubmVsLnJhbmdlKG9mOiAiXlthLXpBLVowLTlfXXsxLDI1fSQiLCBv
+          cHRpb25zOiAucmVndWxhckV4cHJlc3Npb24pICE9IG5pbCwKICAgICAgICAgICAgICB2YXIgcGFydHMgPSBVUkxDb21wb25lbnRzKHN0
+          cmluZzogYmFzZS5pc0VtcHR5ID8gZGVmYXVsdEJhc2UgOiBiYXNlKSwKICAgICAgICAgICAgICBwYXJ0cy5zY2hlbWU/Lmxvd2VyY2Fz
+          ZWQoKSA9PSAiaHR0cHMiLCBwYXJ0cy5ob3N0ICE9IG5pbCBlbHNlIHsgcmV0dXJuIG5pbCB9CiAgICAgICAgaWYgIXBhcnRzLnBhdGgu
+          aGFzU3VmZml4KCIvIikgeyBwYXJ0cy5wYXRoICs9ICIvIiB9CiAgICAgICAgcGFydHMucXVlcnlJdGVtcyA9IFtVUkxRdWVyeUl0ZW0o
+          bmFtZTogImNoYW5uZWwiLCB2YWx1ZTogY2hhbm5lbC5sb3dlcmNhc2VkKCkpXQogICAgICAgIHJldHVybiBwYXJ0cy51cmwKICAgIH0K
+          CiAgICB2YXIgYm9keTogc29tZSBWaWV3IHsKICAgICAgICBWU3RhY2soc3BhY2luZzogMCkgewogICAgICAgICAgICBpZiBsZXQgdXJs
+          ID0gcGxheWVyVVJMIHsKICAgICAgICAgICAgICAgIEVtYmVkZGVkV2ViVmlldyh1cmw6IHVybCwgc3RhdGU6IHBsYXllcikKICAgICAg
+          ICAgICAgICAgICAgICAuZnJhbWUobWF4V2lkdGg6IC5pbmZpbml0eSkKICAgICAgICAgICAgICAgICAgICAuZnJhbWUoaGVpZ2h0OiAz
+          MDApCiAgICAgICAgICAgICAgICAgICAgLmJhY2tncm91bmQoLmJsYWNrKQogICAgICAgICAgICAgICAgU3RyZWFtUGxheWVyQ29udHJv
+          bHMoCiAgICAgICAgICAgICAgICAgICAgc3RhdGU6IHBsYXllciwKICAgICAgICAgICAgICAgICAgICBmdWxsc2NyZWVuOiBmYWxzZSwK
+          ICAgICAgICAgICAgICAgICAgICB0b2dnbGVGdWxsc2NyZWVuOiB7CiAgICAgICAgICAgICAgICAgICAgICAgIHBsYXllci5jb21tYW5k
+          KCJwYXVzZSIpCiAgICAgICAgICAgICAgICAgICAgICAgIHNob3dGdWxsc2NyZWVuID0gdHJ1ZQogICAgICAgICAgICAgICAgICAgIH0s
+          CiAgICAgICAgICAgICAgICAgICAgcmVsb2FkOiB7IHBsYXllci5yZWxvYWQoKSB9CiAgICAgICAgICAgICAgICApCiAgICAgICAgICAg
+          ICAgICAuZnVsbFNjcmVlbkNvdmVyKGlzUHJlc2VudGVkOiAkc2hvd0Z1bGxzY3JlZW4pIHsKICAgICAgICAgICAgICAgICAgICBTdHJl
+          YW1GdWxsc2NyZWVuUGxheWVyKHVybDogdXJsLCBjaGFubmVsOiBjaGFubmVsKQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9
+          IGVsc2UgewogICAgICAgICAgICAgICAgQ29udGVudFVuYXZhaWxhYmxlVmlldygi0J/Qu9C10LXRgCDQvdC1INC90LDRgdGC0YDQvtC1
+          0L0iLCBzeXN0ZW1JbWFnZTogInBsYXkucmVjdGFuZ2xlIiwgZGVzY3JpcHRpb246IFRleHQoItCj0LrQsNC20LjRgtC1INC60L7RgNGA
+          0LXQutGC0L3Ri9C5IEhUVFBTLdCw0LTRgNC10YEg0LIg0L3QsNGB0YLRgNC+0LnQutCw0YUgU3RyZWFtRW1vdGVzIikpCiAgICAgICAg
+          ICAgICAgICAgICAgLmZyYW1lKGhlaWdodDogMjYwKQogICAgICAgICAgICB9CiAgICAgICAgICAgIEhTdGFjayhzcGFjaW5nOiA4KSB7
+          CiAgICAgICAgICAgICAgICBpZiAhcGxheWVyLnN0YXR1c1RleHQuaXNFbXB0eSB7CiAgICAgICAgICAgICAgICAgICAgVGV4dChwbGF5
+          ZXIuc3RhdHVzVGV4dCkKICAgICAgICAgICAgICAgICAgICAgICAgLmZvbnQoLmNhcHRpb24yKQogICAgICAgICAgICAgICAgICAgICAg
+          ICAuZm9yZWdyb3VuZFN0eWxlKC5zZWNvbmRhcnkpCiAgICAgICAgICAgICAgICAgICAgICAgIC5saW5lTGltaXQoMikKICAgICAgICAg
+          ICAgICAgIH0KICAgICAgICAgICAgICAgIFNwYWNlcihtaW5MZW5ndGg6IDIpCiAgICAgICAgICAgICAgICBCdXR0b24oItCe0YLQutGA
+          0YvRgtGMINCyIFR3aXRjaCIsIHN5c3RlbUltYWdlOiAiYXJyb3cudXAucmlnaHQuc3F1YXJlIikgewogICAgICAgICAgICAgICAgICAg
+          IGlmIGxldCB1cmwgPSBVUkwoc3RyaW5nOiAiaHR0cHM6Ly93d3cudHdpdGNoLnR2L1woY2hhbm5lbCkiKSB7IG9wZW5VUkwodXJsKSB9
+          CiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAuZm9udCguY2FwdGlvbikKICAgICAgICAgICAgfQogICAgICAgICAgICAu
+          cGFkZGluZyguaG9yaXpvbnRhbCwgMTIpCiAgICAgICAgICAgIC5wYWRkaW5nKC52ZXJ0aWNhbCwgNykKICAgICAgICB9CiAgICAgICAg
+          LmJhY2tncm91bmQoQ29sb3IocmVkOiAwLjA2NSwgZ3JlZW46IDAuMDY1LCBibHVlOiAwLjA4NSkpCiAgICB9Cn0KCnByaXZhdGUgc3Ry
+          dWN0IFN0cmVhbUZ1bGxzY3JlZW5QbGF5ZXI6IFZpZXcgewogICAgbGV0IHVybDogVVJMCiAgICBsZXQgY2hhbm5lbDogU3RyaW5nCiAg
+          ICBARW52aXJvbm1lbnQoXC5kaXNtaXNzKSBwcml2YXRlIHZhciBkaXNtaXNzCiAgICBAU3RhdGVPYmplY3QgcHJpdmF0ZSB2YXIgcGxh
+          eWVyID0gU3RyZWFtUGxheWVyU3RhdGUoKQoKICAgIHZhciBib2R5OiBzb21lIFZpZXcgewogICAgICAgIEdlb21ldHJ5UmVhZGVyIHsg
+          Z2VvbWV0cnkgaW4KICAgICAgICAgICAgVlN0YWNrKHNwYWNpbmc6IDApIHsKICAgICAgICAgICAgICAgIEhTdGFjayB7CiAgICAgICAg
+          ICAgICAgICAgICAgVGV4dCgi0JIg0Y3RhNC40YDQtTogXChjaGFubmVsKSIpCiAgICAgICAgICAgICAgICAgICAgICAgIC5mb250KC5o
+          ZWFkbGluZSkKICAgICAgICAgICAgICAgICAgICAgICAgLmxpbmVMaW1pdCgxKQogICAgICAgICAgICAgICAgICAgIFNwYWNlcigpCiAg
+          ICAgICAgICAgICAgICAgICAgQnV0dG9uKCLQl9Cw0LrRgNGL0YLRjCIsIHN5c3RlbUltYWdlOiAieG1hcmsiKSB7IGRpc21pc3MoKSB9
+          CiAgICAgICAgICAgICAgICAgICAgICAgIC5sYWJlbFN0eWxlKC5pY29uT25seSkKICAgICAgICAgICAgICAgICAgICAgICAgLmFjY2Vz
+          c2liaWxpdHlMYWJlbCgi0JLRi9C50YLQuCDQuNC3INC/0L7Qu9C90L7Qs9C+INGN0LrRgNCw0L3QsCIpCiAgICAgICAgICAgICAgICAg
+          ICAgICAgIC5mb250KC50aXRsZTMpCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICAucGFkZGluZyguaG9yaXpvbnRhbCwg
+          MTYpCiAgICAgICAgICAgICAgICAucGFkZGluZygudmVydGljYWwsIDEyKQoKICAgICAgICAgICAgICAgIEVtYmVkZGVkV2ViVmlldyh1
+          cmw6IHVybCwgc3RhdGU6IHBsYXllcikKICAgICAgICAgICAgICAgICAgICAuZnJhbWUoaGVpZ2h0OiBtYXgoMzAwLCBtaW4oZ2VvbWV0
+          cnkuc2l6ZS53aWR0aCAqIDkgLyAxNiwgZ2VvbWV0cnkuc2l6ZS5oZWlnaHQgLSAxMTApKSkKICAgICAgICAgICAgICAgICAgICAuYmFj
+          a2dyb3VuZCguYmxhY2spCgogICAgICAgICAgICAgICAgU3RyZWFtUGxheWVyQ29udHJvbHMoCiAgICAgICAgICAgICAgICAgICAgc3Rh
+          dGU6IHBsYXllciwKICAgICAgICAgICAgICAgICAgICBmdWxsc2NyZWVuOiB0cnVlLAogICAgICAgICAgICAgICAgICAgIHRvZ2dsZUZ1
+          bGxzY3JlZW46IHsgZGlzbWlzcygpIH0sCiAgICAgICAgICAgICAgICAgICAgcmVsb2FkOiB7IHBsYXllci5yZWxvYWQoKSB9CiAgICAg
+          ICAgICAgICAgICApCiAgICAgICAgICAgICAgICBTcGFjZXIobWluTGVuZ3RoOiAwKQogICAgICAgICAgICB9CiAgICAgICAgICAgIC5m
+          cmFtZShtYXhXaWR0aDogLmluZmluaXR5LCBtYXhIZWlnaHQ6IC5pbmZpbml0eSwgYWxpZ25tZW50OiAudG9wKQogICAgICAgICAgICAu
+          Zm9yZWdyb3VuZFN0eWxlKC53aGl0ZSkKICAgICAgICAgICAgLmJhY2tncm91bmQoLmJsYWNrKQogICAgICAgIH0KICAgICAgICAucHJl
+          ZmVycmVkQ29sb3JTY2hlbWUoLmRhcmspCiAgICB9Cn0KCnByaXZhdGUgc3RydWN0IFN0cmVhbVBsYXllckNvbnRyb2xzOiBWaWV3IHsK
+          ICAgIEBPYnNlcnZlZE9iamVjdCB2YXIgc3RhdGU6IFN0cmVhbVBsYXllclN0YXRlCiAgICBsZXQgZnVsbHNjcmVlbjogQm9vbAogICAg
+          bGV0IHRvZ2dsZUZ1bGxzY3JlZW46ICgpIC0+IFZvaWQKICAgIGxldCByZWxvYWQ6ICgpIC0+IFZvaWQKICAgIEBTdGF0ZSBwcml2YXRl
+          IHZhciBxdWFsaXR5U2hlZXQgPSBmYWxzZQoKICAgIHZhciBib2R5OiBzb21lIFZpZXcgewogICAgICAgIEhTdGFjayhzcGFjaW5nOiAx
+          OCkgewogICAgICAgICAgICBCdXR0b24gewogICAgICAgICAgICAgICAgc3RhdGUuY29tbWFuZChzdGF0ZS5pc1BsYXlpbmcgPyAicGF1
+          c2UiIDogInBsYXkiKQogICAgICAgICAgICB9IGxhYmVsOiB7CiAgICAgICAgICAgICAgICBJbWFnZShzeXN0ZW1OYW1lOiBzdGF0ZS5p
+          c1BsYXlpbmcgPyAicGF1c2UuZmlsbCIgOiAicGxheS5maWxsIikKICAgICAgICAgICAgfQogICAgICAgICAgICAuYWNjZXNzaWJpbGl0
+          eUxhYmVsKHN0YXRlLmlzUGxheWluZyA/ICLQn9Cw0YPQt9CwIiA6ICLQktC+0YHQv9GA0L7QuNC30LLQtdGB0YLQuCIpCgogICAgICAg
+          ICAgICBCdXR0b24gewogICAgICAgICAgICAgICAgc3RhdGUuY29tbWFuZCgibXV0ZSIsIHZhbHVlOiBzdGF0ZS5pc011dGVkID8gImZh
+          bHNlIiA6ICJ0cnVlIikKICAgICAgICAgICAgfSBsYWJlbDogewogICAgICAgICAgICAgICAgSW1hZ2Uoc3lzdGVtTmFtZTogc3RhdGUu
+          aXNNdXRlZCA/ICJzcGVha2VyLnNsYXNoLmZpbGwiIDogInNwZWFrZXIud2F2ZS4yLmZpbGwiKQogICAgICAgICAgICB9CiAgICAgICAg
+          ICAgIC5hY2Nlc3NpYmlsaXR5TGFiZWwoc3RhdGUuaXNNdXRlZCA/ICLQktC60LvRjtGH0LjRgtGMINC30LLRg9C6IiA6ICLQktGL0LrQ
+          u9GO0YfQuNGC0Ywg0LfQstGD0LoiKQoKICAgICAgICAgICAgU3BhY2VyKG1pbkxlbmd0aDogMikKCiAgICAgICAgICAgIEJ1dHRvbiB7
+          CiAgICAgICAgICAgICAgICBzdGF0ZS5jb21tYW5kKCJxdWFsaXRpZXMiKQogICAgICAgICAgICAgICAgcXVhbGl0eVNoZWV0ID0gdHJ1
+          ZQogICAgICAgICAgICB9IGxhYmVsOiB7CiAgICAgICAgICAgICAgICBIU3RhY2soc3BhY2luZzogNSkgewogICAgICAgICAgICAgICAg
+          ICAgIEltYWdlKHN5c3RlbU5hbWU6ICJnZWFyc2hhcGUiKQogICAgICAgICAgICAgICAgICAgIFRleHQoU3RyZWFtUGxheWVyU3RhdGUu
+          cXVhbGl0eUxhYmVsKHN0YXRlLnF1YWxpdHkpKQogICAgICAgICAgICAgICAgICAgICAgICAuZm9udCguY2FwdGlvbikKICAgICAgICAg
+          ICAgICAgICAgICAgICAgLmxpbmVMaW1pdCgxKQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgICAgIC5hY2Nl
+          c3NpYmlsaXR5TGFiZWwoItCd0LDRgdGC0YDQvtC50LrQuCDQutCw0YfQtdGB0YLQstCwINCy0LjQtNC10L4iKQoKICAgICAgICAgICAg
+          QnV0dG9uKGFjdGlvbjogcmVsb2FkKSB7CiAgICAgICAgICAgICAgICBJbWFnZShzeXN0ZW1OYW1lOiAiYXJyb3cuY2xvY2t3aXNlIikK
+          ICAgICAgICAgICAgfQogICAgICAgICAgICAuYWNjZXNzaWJpbGl0eUxhYmVsKCLQntCx0L3QvtCy0LjRgtGMINC/0LvQtdC10YAiKQoK
+          ICAgICAgICAgICAgQnV0dG9uKGFjdGlvbjogdG9nZ2xlRnVsbHNjcmVlbikgewogICAgICAgICAgICAgICAgSW1hZ2Uoc3lzdGVtTmFt
+          ZTogZnVsbHNjcmVlbiA/ICJhcnJvdy5kb3duLnJpZ2h0LmFuZC5hcnJvdy51cC5sZWZ0IiA6ICJhcnJvdy51cC5sZWZ0LmFuZC5hcnJv
+          dy5kb3duLnJpZ2h0IikKICAgICAgICAgICAgfQogICAgICAgICAgICAuYWNjZXNzaWJpbGl0eUxhYmVsKGZ1bGxzY3JlZW4gPyAi0KHQ
+          stC10YDQvdGD0YLRjCDQv9C70LXQtdGAIiA6ICLQn9C+0LvQvdGL0Lkg0Y3QutGA0LDQvSIpCiAgICAgICAgfQogICAgICAgIC5mb250
+          KC5zeXN0ZW0oc2l6ZTogMTksIHdlaWdodDogLm1lZGl1bSkpCiAgICAgICAgLmZvcmVncm91bmRTdHlsZSgud2hpdGUpCiAgICAgICAg
+          LnBhZGRpbmcoLmhvcml6b250YWwsIDE0KQogICAgICAgIC5mcmFtZShoZWlnaHQ6IDUyKQogICAgICAgIC5iYWNrZ3JvdW5kKENvbG9y
+          KHJlZDogMC4xMSwgZ3JlZW46IDAuMDksIGJsdWU6IDAuMTcpKQogICAgICAgIC5zaGVldChpc1ByZXNlbnRlZDogJHF1YWxpdHlTaGVl
+          dCkgewogICAgICAgICAgICBOYXZpZ2F0aW9uU3RhY2sgewogICAgICAgICAgICAgICAgTGlzdCB7CiAgICAgICAgICAgICAgICAgICAg
+          aWYgc3RhdGUucXVhbGl0aWVzLmlzRW1wdHkgewogICAgICAgICAgICAgICAgICAgICAgICBUZXh0KCJUd2l0Y2gg0L/QvtC60LAg0L3Q
+          tSDRgdC+0L7QsdGJ0LjQuyDQtNC+0YHRgtGD0L/QvdGL0LUg0LLQsNGA0LjQsNC90YLRiyDQutCw0YfQtdGB0YLQstCwLiDQl9Cw0L/R
+          g9GB0YLQuCDRgtGA0LDQvdGB0LvRj9GG0LjRjiDQuCDQvtGC0LrRgNC+0Lkg0LzQtdC90Y4g0LXRidGRINGA0LDQty4iKQogICAgICAg
+          ICAgICAgICAgICAgICAgICAgICAgLmZvbnQoLnN1YmhlYWRsaW5lKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvcmVncm91
+          bmRTdHlsZSguc2Vjb25kYXJ5KQogICAgICAgICAgICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICAgICAgICAgICAgIEZvckVh
+          Y2goc3RhdGUucXVhbGl0aWVzLCBpZDogXC5zZWxmKSB7IHF1YWxpdHkgaW4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIEJ1dHRv
+          biB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3RhdGUuY29tbWFuZCgicXVhbGl0eSIsIHZhbHVlOiBxdWFsaXR5KQog
+          ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHF1YWxpdHlTaGVldCA9IGZhbHNlCiAgICAgICAgICAgICAgICAgICAgICAgICAg
+          ICB9IGxhYmVsOiB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgSFN0YWNrIHsKICAgICAgICAgICAgICAgICAgICAgICAg
+          ICAgICAgICAgICAgVGV4dChTdHJlYW1QbGF5ZXJTdGF0ZS5xdWFsaXR5TGFiZWwocXVhbGl0eSkpCiAgICAgICAgICAgICAgICAgICAg
+          ICAgICAgICAgICAgICAgIFNwYWNlcigpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmIHF1YWxpdHkgPT0gc3Rh
+          dGUucXVhbGl0eSB7IEltYWdlKHN5c3RlbU5hbWU6ICJjaGVja21hcmsiKS5mb3JlZ3JvdW5kU3R5bGUoLnB1cnBsZSkgfQogICAgICAg
+          ICAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAuY29udGVudFNoYXBlKFJlY3Rh
+          bmdsZSgpKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvcmVncm91bmRT
+          dHlsZSgucHJpbWFyeSkKICAgICAgICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAg
+          ICAgICBTZWN0aW9uIHsKICAgICAgICAgICAgICAgICAgICAgICAgVGV4dCgi0JTQvtGB0YLRg9C/0L3Ri9C1INC60LDRh9C10YHRgtCy
+          0LAg0L7Qv9GA0LXQtNC10LvRj9C10YIgVHdpdGNoLiDQndC1INC90LAg0LrQsNC20LTQvtC8INGN0YTQuNGA0LUg0LXRgdGC0YwgMTA4
+          MHAsIDcyMHAg0LjQu9C4INGA0LXQttC40LwgQXV0by4iKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgLmZvbnQoLmNhcHRpb24p
+          CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAuZm9yZWdyb3VuZFN0eWxlKC5zZWNvbmRhcnkpCiAgICAgICAgICAgICAgICAgICAg
+          fQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgLm5hdmlnYXRpb25UaXRsZSgi0JrQsNGH0LXRgdGC0LLQviDQstC40LTQ
+          tdC+IikKICAgICAgICAgICAgICAgIC5uYXZpZ2F0aW9uQmFyVGl0bGVEaXNwbGF5TW9kZSguaW5saW5lKQogICAgICAgICAgICAgICAg
+          LnRvb2xiYXIgewogICAgICAgICAgICAgICAgICAgIFRvb2xiYXJJdGVtKHBsYWNlbWVudDogLnRvcEJhckxlYWRpbmcpIHsKICAgICAg
+          ICAgICAgICAgICAgICAgICAgQnV0dG9uKCLQntCx0L3QvtCy0LjRgtGMIikgeyBzdGF0ZS5jb21tYW5kKCJxdWFsaXRpZXMiKSB9CiAg
+          ICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgICAgIFRvb2xiYXJJdGVtKHBsYWNlbWVudDogLnRvcEJhclRyYWlsaW5n
+          KSB7CiAgICAgICAgICAgICAgICAgICAgICAgIEJ1dHRvbigi0JPQvtGC0L7QstC+IikgeyBxdWFsaXR5U2hlZXQgPSBmYWxzZSB9CiAg
+          ICAgICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgICAgIC5wcmVzZW50YXRpb25E
+          ZXRlbnRzKFsubWVkaXVtLCAubGFyZ2VdKQogICAgICAgICAgICAub25BcHBlYXIgeyBzdGF0ZS5jb21tYW5kKCJxdWFsaXRpZXMiKSB9
+          CiAgICAgICAgfQogICAgfQp9CgpATWFpbkFjdG9yCmZpbmFsIGNsYXNzIFN0cmVhbVBsYXllclN0YXRlOiBPYnNlcnZhYmxlT2JqZWN0
+          IHsKICAgIEBQdWJsaXNoZWQgdmFyIGlzUGxheWluZyA9IGZhbHNlCiAgICBAUHVibGlzaGVkIHZhciBpc011dGVkID0gZmFsc2UKICAg
+          IEBQdWJsaXNoZWQgdmFyIHF1YWxpdHkgPSAiIgogICAgQFB1Ymxpc2hlZCB2YXIgcXVhbGl0aWVzOiBbU3RyaW5nXSA9IFtdCiAgICBA
+          UHVibGlzaGVkIHZhciBzdGF0dXNUZXh0ID0gItCd0LDQttC80Lgg4pa2LCDRh9GC0L7QsdGLINC90LDRh9Cw0YLRjCDQv9GA0L7RgdC8
+          0L7RgtGAIgogICAgd2VhayB2YXIgd2ViVmlldzogV0tXZWJWaWV3PwoKICAgIHN0YXRpYyBmdW5jIHF1YWxpdHlMYWJlbChfIHJhdzog
+          U3RyaW5nKSAtPiBTdHJpbmcgewogICAgICAgIHN3aXRjaCByYXcubG93ZXJjYXNlZCgpIHsKICAgICAgICBjYXNlICJjaHVua2VkIjog
+          cmV0dXJuICLQmNGB0YLQvtGH0L3QuNC6IgogICAgICAgIGNhc2UgImF1dG8iOiByZXR1cm4gItCQ0LLRgtC+IgogICAgICAgIGNhc2Ug
+          IiI6IHJldHVybiAi0JrQsNGH0LXRgdGC0LLQviIKICAgICAgICBkZWZhdWx0OiByZXR1cm4gcmF3CiAgICAgICAgfQogICAgfQoKICAg
+          IGZ1bmMgY29tbWFuZChfIGFjdGlvbjogU3RyaW5nLCB2YWx1ZTogU3RyaW5nPyA9IG5pbCkgewogICAgICAgIGd1YXJkIGxldCB3ZWJW
+          aWV3IGVsc2UgeyByZXR1cm4gfQogICAgICAgIHZhciBwYXlsb2FkOiBbU3RyaW5nOiBTdHJpbmddID0gWyJhY3Rpb24iOiBhY3Rpb25d
+          CiAgICAgICAgaWYgbGV0IHZhbHVlIHsgcGF5bG9hZFsidmFsdWUiXSA9IHZhbHVlIH0KICAgICAgICBndWFyZCBsZXQgZGF0YSA9IHRy
+          eT8gSlNPTlNlcmlhbGl6YXRpb24uZGF0YSh3aXRoSlNPTk9iamVjdDogcGF5bG9hZCksCiAgICAgICAgICAgICAgbGV0IGpzb24gPSBT
+          dHJpbmcoZGF0YTogZGF0YSwgZW5jb2Rpbmc6IC51dGY4KSBlbHNlIHsgcmV0dXJuIH0KICAgICAgICB3ZWJWaWV3LmV2YWx1YXRlSmF2
+          YVNjcmlwdCgid2luZG93LnN0cmVhbUVtb3Rlc1BsYXllckNvbnRyb2wgJiYgd2luZG93LnN0cmVhbUVtb3Rlc1BsYXllckNvbnRyb2wo
+          XChqc29uKSk7IiwgY29tcGxldGlvbkhhbmRsZXI6IG5pbCkKICAgIH0KCiAgICBmdW5jIHJlbG9hZCgpIHsKICAgICAgICBzdGF0dXNU
+          ZXh0ID0gItCf0LXRgNC10LfQsNCz0YDRg9C20LDQtdC8INGC0YDQsNC90YHQu9GP0YbQuNGO4oCmIgogICAgICAgIHF1YWxpdGllcyA9
+          IFtdCiAgICAgICAgaXNQbGF5aW5nID0gZmFsc2UKICAgICAgICB3ZWJWaWV3Py5yZWxvYWQoKQogICAgfQoKICAgIGZ1bmMgcmVjZWl2
+          ZShfIGRhdGE6IFtTdHJpbmc6IEFueV0pIHsKICAgICAgICBndWFyZCBsZXQgdHlwZSA9IGRhdGFbInR5cGUiXSBhcz8gU3RyaW5nIGVs
+          c2UgeyByZXR1cm4gfQogICAgICAgIGlmIHR5cGUgPT0gInN0YXRlIiB7CiAgICAgICAgICAgIGlzUGxheWluZyA9IGRhdGFbInBsYXlp
+          bmciXSBhcz8gQm9vbCA/PyBmYWxzZQogICAgICAgICAgICBpc011dGVkID0gZGF0YVsibXV0ZWQiXSBhcz8gQm9vbCA/PyBmYWxzZQog
+          ICAgICAgICAgICBxdWFsaXR5ID0gZGF0YVsicXVhbGl0eSJdIGFzPyBTdHJpbmcgPz8gIiIKICAgICAgICAgICAgaWYgbGV0IG9wdGlv
+          bnMgPSBkYXRhWyJxdWFsaXRpZXMiXSBhcz8gW1N0cmluZ10gewogICAgICAgICAgICAgICAgdmFyIHNlZW4gPSBTZXQ8U3RyaW5nPigp
+          CiAgICAgICAgICAgICAgICBxdWFsaXRpZXMgPSBvcHRpb25zLmZpbHRlciB7IHNlZW4uaW5zZXJ0KCQwKS5pbnNlcnRlZCB9CiAgICAg
+          ICAgICAgIH0KICAgICAgICAgICAgc3RhdHVzVGV4dCA9ICIiCiAgICAgICAgfSBlbHNlIGlmIHR5cGUgPT0gImluZm8iIHsKICAgICAg
+          ICAgICAgc3RhdHVzVGV4dCA9IGRhdGFbIm1lc3NhZ2UiXSBhcz8gU3RyaW5nID8/ICIiCiAgICAgICAgfSBlbHNlIGlmIHR5cGUgPT0g
+          ImVycm9yIiB7CiAgICAgICAgICAgIHN0YXR1c1RleHQgPSBkYXRhWyJtZXNzYWdlIl0gYXM/IFN0cmluZyA/PyAi0J/Qu9C10LXRgCDQ
+          vdC1INC+0YLQstC10YfQsNC10YIiCiAgICAgICAgfQogICAgfQp9CgpzdHJ1Y3QgRW1iZWRkZWRXZWJWaWV3OiBVSVZpZXdSZXByZXNl
+          bnRhYmxlIHsKICAgIGxldCB1cmw6IFVSTAogICAgQE9ic2VydmVkT2JqZWN0IHZhciBzdGF0ZTogU3RyZWFtUGxheWVyU3RhdGUKCiAg
+          ICBmdW5jIG1ha2VDb29yZGluYXRvcigpIC0+IENvb3JkaW5hdG9yIHsgQ29vcmRpbmF0b3Ioc3RhdGU6IHN0YXRlLCBhbGxvd2VkSG9z
+          dDogdXJsLmhvc3QgPz8gIiIpIH0KCiAgICBmdW5jIG1ha2VVSVZpZXcoY29udGV4dDogQ29udGV4dCkgLT4gV0tXZWJWaWV3IHsKICAg
+          ICAgICBsZXQgY29udGVudCA9IFdLVXNlckNvbnRlbnRDb250cm9sbGVyKCkKICAgICAgICBjb250ZW50LmFkZChjb250ZXh0LmNvb3Jk
+          aW5hdG9yLCBuYW1lOiAic3RyZWFtRW1vdGVzUGxheWVyIikKICAgICAgICBsZXQgY29uZmlnID0gV0tXZWJWaWV3Q29uZmlndXJhdGlv
+          bigpCiAgICAgICAgY29uZmlnLnVzZXJDb250ZW50Q29udHJvbGxlciA9IGNvbnRlbnQKICAgICAgICBjb25maWcuYWxsb3dzSW5saW5l
+          TWVkaWFQbGF5YmFjayA9IHRydWUKICAgICAgICBjb25maWcuYWxsb3dzUGljdHVyZUluUGljdHVyZU1lZGlhUGxheWJhY2sgPSB0cnVl
+          CiAgICAgICAgbGV0IHdlYlZpZXcgPSBXS1dlYlZpZXcoZnJhbWU6IC56ZXJvLCBjb25maWd1cmF0aW9uOiBjb25maWcpCiAgICAgICAg
+          d2ViVmlldy5zY3JvbGxWaWV3LmlzU2Nyb2xsRW5hYmxlZCA9IGZhbHNlCiAgICAgICAgd2ViVmlldy5pc09wYXF1ZSA9IGZhbHNlCiAg
+          ICAgICAgd2ViVmlldy5iYWNrZ3JvdW5kQ29sb3IgPSAuYmxhY2sKICAgICAgICBzdGF0ZS53ZWJWaWV3ID0gd2ViVmlldwogICAgICAg
+          IHdlYlZpZXcubG9hZChVUkxSZXF1ZXN0KHVybDogdXJsKSkKICAgICAgICByZXR1cm4gd2ViVmlldwogICAgfQoKICAgIGZ1bmMgdXBk
+          YXRlVUlWaWV3KF8gd2ViVmlldzogV0tXZWJWaWV3LCBjb250ZXh0OiBDb250ZXh0KSB7CiAgICAgICAgaWYgd2ViVmlldy51cmwgIT0g
+          dXJsIHsgd2ViVmlldy5sb2FkKFVSTFJlcXVlc3QodXJsOiB1cmwpKSB9CiAgICB9CgogICAgc3RhdGljIGZ1bmMgZGlzbWFudGxlVUlW
+          aWV3KF8gd2ViVmlldzogV0tXZWJWaWV3LCBjb29yZGluYXRvcjogQ29vcmRpbmF0b3IpIHsKICAgICAgICB3ZWJWaWV3LmNvbmZpZ3Vy
+          YXRpb24udXNlckNvbnRlbnRDb250cm9sbGVyLnJlbW92ZVNjcmlwdE1lc3NhZ2VIYW5kbGVyKGZvck5hbWU6ICJzdHJlYW1FbW90ZXNQ
+          bGF5ZXIiKQogICAgICAgIHdlYlZpZXcuc3RvcExvYWRpbmcoKQogICAgfQoKICAgIGZpbmFsIGNsYXNzIENvb3JkaW5hdG9yOiBOU09i
+          amVjdCwgV0tTY3JpcHRNZXNzYWdlSGFuZGxlciB7CiAgICAgICAgbGV0IHN0YXRlOiBTdHJlYW1QbGF5ZXJTdGF0ZQogICAgICAgIGxl
+          dCBhbGxvd2VkSG9zdDogU3RyaW5nCiAgICAgICAgaW5pdChzdGF0ZTogU3RyZWFtUGxheWVyU3RhdGUsIGFsbG93ZWRIb3N0OiBTdHJp
+          bmcpIHsKICAgICAgICAgICAgc2VsZi5zdGF0ZSA9IHN0YXRlCiAgICAgICAgICAgIHNlbGYuYWxsb3dlZEhvc3QgPSBhbGxvd2VkSG9z
+          dAogICAgICAgIH0KICAgICAgICBmdW5jIHVzZXJDb250ZW50Q29udHJvbGxlcihfIHVzZXJDb250ZW50Q29udHJvbGxlcjogV0tVc2Vy
+          Q29udGVudENvbnRyb2xsZXIsIGRpZFJlY2VpdmUgbWVzc2FnZTogV0tTY3JpcHRNZXNzYWdlKSB7CiAgICAgICAgICAgIGd1YXJkIG1l
+          c3NhZ2UubmFtZSA9PSAic3RyZWFtRW1vdGVzUGxheWVyIiwgbWVzc2FnZS5mcmFtZUluZm8uaXNNYWluRnJhbWUsCiAgICAgICAgICAg
+          ICAgICAgIG1lc3NhZ2UuZnJhbWVJbmZvLnNlY3VyaXR5T3JpZ2luLmhvc3QgPT0gYWxsb3dlZEhvc3QsCiAgICAgICAgICAgICAgICAg
+          IGxldCBkYXRhID0gbWVzc2FnZS5ib2R5IGFzPyBbU3RyaW5nOiBBbnldIGVsc2UgeyByZXR1cm4gfQogICAgICAgICAgICBUYXNrIHsg
+          QE1haW5BY3RvciBpbiBzdGF0ZS5yZWNlaXZlKGRhdGEpIH0KICAgICAgICB9CiAgICB9Cn0K
+          """.split()))
+          Path('Sources/PlayerView.swift').write_bytes(data)
+          print('Prepared Player v2 screenshot source:', len(data), 'bytes')
+          PYCODE
+      - name: Select screen for Simulator only
+        env:
+          PREVIEW_SCREEN: ${{ github.event.inputs.screen || 'player' }}
+          PREVIEW_CHANNEL: ${{ github.event.inputs.channel || 'forsen' }}
+        shell: bash
+        run: |
+          python3 - <<'PYCODE'
+          import os
+          import re
+          from pathlib import Path
+
+          screen = os.environ.get('PREVIEW_SCREEN', 'player')
+          channel = os.environ.get('PREVIEW_CHANNEL', 'forsen')
+          if screen not in ('player', 'home'):
+              raise SystemExit('Unknown screen')
+          if not re.fullmatch(r'[A-Za-z0-9_]{1,25}', channel):
+              raise SystemExit('Invalid Twitch channel')
+          if screen == 'home':
+              print('Capturing native home screen')
+          else:
+              # This modifies only the temporary Actions checkout; never the GitHub repository.
+              app = Path('Sources/App.swift')
+              if not app.exists():
+                  raise SystemExit('Sources/App.swift not found')
+              swift = f'''import SwiftUI
+          @main
+          struct StreamEmotesApp: App {{
+              var body: some Scene {{
+                  WindowGroup {{
+                      NavigationStack {{ PlayerView(channel: "{channel}") }}
+                          .preferredColorScheme(.dark)
+                  }}
+              }}
+          }}
+          '''
+              app.write_text(swift, encoding='utf-8')
+              print('Capturing native PlayerView for:', channel)
+          PYCODE
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build for iOS Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -project StreamEmotes.xcodeproj \
+            -scheme StreamEmotes -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/StreamEmotesSimBuild" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+      - name: Start simulator and take PNG screenshot
+        env:
+          PREVIEW_SCREEN: ${{ github.event.inputs.screen || 'player' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun simctl list devices available
+          SIMULATOR_ID="$(python3 - <<'PYCODE'
+          import json
+          import subprocess
+          raw = subprocess.check_output(['xcrun','simctl','list','devices','available','-j'], text=True)
+          data = json.loads(raw)
+          devices = [d for group in data['devices'].values() for d in group
+                     if d.get('isAvailable', True) and d.get('udid') and 'iPhone' in d.get('name','')]
+          if not devices:
+              raise SystemExit('No iPhone simulators available')
+          priorities = ['iPhone 16 Pro', 'iPhone 16', 'iPhone 15 Pro', 'iPhone 15']
+          selected = next((d for n in priorities for d in devices if d['name']==n), devices[0])
+          print(selected['udid'])
+          PYCODE
+          )"
+          echo "Using simulator $SIMULATOR_ID"
+          xcrun simctl boot "$SIMULATOR_ID"
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
+          xcrun simctl ui "$SIMULATOR_ID" appearance dark || true
+          xcrun simctl status_bar "$SIMULATOR_ID" override \
+            --time '9:41' --batteryState charged --batteryLevel 100 \
+            --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 || true
+          APP="$RUNNER_TEMP/StreamEmotesSimBuild/Build/Products/Debug-iphonesimulator/StreamEmotes.app"
+          test -d "$APP"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
+          echo "Launching app bundle: $BUNDLE_ID"
+          xcrun simctl install "$SIMULATOR_ID" "$APP"
+          xcrun simctl launch --terminate-running-process "$SIMULATOR_ID" "$BUNDLE_ID"
+          sleep 18
+          mkdir -p screenshots
+          xcrun simctl io "$SIMULATOR_ID" screenshot "screenshots/StreamEmotes-${PREVIEW_SCREEN}-simulator.png"
+          file "screenshots/StreamEmotes-${PREVIEW_SCREEN}-simulator.png"
+      - name: Upload real simulator screenshot
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: StreamEmotes-simulator-screenshots
+          path: screenshots/*.png
+          if-no-files-found: error
+          retention-days: 7
