@@ -9,8 +9,9 @@ struct PlayerView: View {
     @Environment(\.openURL) private var openURL
     var body: some View {
         VStack(spacing: 8) {
-            if let host = URL(string: playerBaseURL), host.scheme == "https", host.host != nil,
-               let url = URL(string: playerBaseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/?channel=\(channel)") {
+            let base = playerBaseURL.isEmpty ? "https://shaam777-ghub.github.io/StreamEmotes/player" : playerBaseURL
+            if let host = URL(string: base), host.scheme == "https", host.host != nil,
+               let url = URL(string: base.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/?channel=\(channel)") {
                 EmbeddedWebView(url: url)
                     .frame(maxWidth: .infinity)
                     .frame(height: 250)

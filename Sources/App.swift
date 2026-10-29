@@ -2,7 +2,8 @@ import SwiftUI
 
 @main
 struct StreamEmotesApp: App {
+    @StateObject private var twitchAuth = TwitchAuthService()
     var body: some Scene {
-        WindowGroup { HomeView() }
+        WindowGroup { HomeView().environmentObject(twitchAuth) }
     }
 }

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @EnvironmentObject private var auth: TwitchAuthService
     @AppStorage("channel") private var channel = ""
     @AppStorage("twitchUserID") private var twitchUserID = ""
     @AppStorage("playerBaseURL") private var playerBaseURL = ""
@@ -34,10 +35,31 @@ struct HomeView: View {
             .sheet(isPresented: $showSettings) {
                 NavigationStack {
                     Form {
+                        Section("Аккаунт Twitch") {
+                            if auth.signedIn {
+                                Text("Вы вошли как @\(auth.userName)")
+                                Button("Выйти") { auth.logout() }
+                            } else {
+                                TextField("Twitch Client ID", text: $auth.clientID)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                Button("Получить код входа") { Task { await auth.startLogin() } }
+                                    .disabled(auth.busy)
+                                if let device = auth.device {
+                                    Text("Код: \(device.user_code)").font(.headline)
+                                    Link("Открыть Twitch для подтверждения", destination: URL(string:device.verification_uri)!)
+                                    Button("Проверить вход") { Task { await auth.finishLogin() } }
+                                        .disabled(auth.busy)
+                                }
+                                Text("Client ID создаётся один раз в dev.twitch.tv/console/apps. Выбери Public Client / Device Code Flow, если есть такой выбор. Не вставляй Client Secret.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            if !auth.errorText.isEmpty { Text(auth.errorText).font(.caption).foregroundStyle(.red) }
+                        }
                         Section("Эмоции канала") {
                             TextField("Числовой Twitch User ID", text: $twitchUserID)
                                 .keyboardType(.numberPad)
-                            Text("Необязательно. Без ID загружаются глобальные эмоции 7TV и BTTV.")
+                            Text("ID определяется автоматически по имени канала. Можно указать вручную, если автоопределение не работает.")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Section("Встроенный плеер") {
@@ -62,6 +84,10 @@ struct HomeView: View {
 }
 
 struct StreamView: View {
+    @EnvironmentObject private var auth: TwitchAuthService
+    @State private var outgoing = ""
+    @State private var sending = false
+    @State private var sendError = ""
     let channel: String
     let twitchUserID: String
     @StateObject private var chat = ChatService()
@@ -74,6 +100,8 @@ struct StreamView: View {
                 Text("Чат #\(channel)").font(.headline)
                 Spacer()
                 Circle().fill(chat.connected ? .green : .gray).frame(width: 8, height: 8)
+                Text("7TV / BTTV: \(emotes.count)")
+                    .font(.caption2).foregroundStyle(.secondary)
                 Button { showEmotes.toggle() } label: { Image(systemName: "face.smiling") }
             }.padding(.horizontal).padding(.vertical, 10)
             Divider()
@@ -90,14 +118,26 @@ struct StreamView: View {
                 }
             }
             Divider()
-            Text("Чат доступен для чтения. Отправка сообщений требует OAuth Twitch.")
-                .font(.caption2).foregroundStyle(.secondary).padding(8)
+            if auth.signedIn {
+                HStack(spacing: 8) {
+                    TextField("Сообщение от @\(auth.userName)", text: $outgoing)
+                        .textFieldStyle(.roundedBorder)
+                        .submitLabel(.send)
+                        .onSubmit { Task { await sendMessage() } }
+                    Button("Отправить") { Task { await sendMessage() } }
+                        .disabled(sending || outgoing.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
+                }.padding(8)
+            } else {
+                Text("Чтобы писать в чат, войди в Twitch через ⚙️ на главном экране.")
+                    .font(.caption).foregroundStyle(.secondary).padding(8)
+            }
+            if !sendError.isEmpty { Text(sendError).font(.caption).foregroundStyle(.red).padding(.horizontal,8) }
         }
         .navigationTitle(channel)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: channel + twitchUserID) {
             chat.connect(channel: channel)
-            emotes = await EmoteService().load(twitchUserID: twitchUserID)
+            emotes = await EmoteService().load(channel: channel, twitchUserID: twitchUserID)
         }
         .onDisappear { chat.disconnect() }
         .sheet(isPresented: $showEmotes) {
@@ -118,6 +158,15 @@ struct StreamView: View {
             }
         }
     }
+    private func sendMessage() async {
+        let content = outgoing.trimmingCharacters(in:.whitespacesAndNewlines)
+        guard !sending, !content.isEmpty, content.count <= 500 else { return }
+        sending = true; sendError = ""
+        defer { sending = false }
+        do { try await TwitchChatSender.send(content,channel:channel,auth:auth); outgoing = "" }
+        catch { sendError = error.localizedDescription }
+    }
+
 }
 
 private struct ChatRow: View {

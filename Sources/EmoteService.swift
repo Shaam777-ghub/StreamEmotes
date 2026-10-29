@@ -15,13 +15,21 @@ actor EmoteService {
     private struct SevenTVData: Decodable { let host: SevenTVHost? }
     private struct SevenTVHost: Decodable { let url: String; let files: [SevenTVFile] }
     private struct SevenTVFile: Decodable { let name: String }
-    private struct SevenTVUser: Decodable { let emote_set: SevenTVSet? }
+    private struct SevenTVUser: Decodable {
+        struct PartialSet: Decodable { let id: String?; let emotes: [SevenTVEmote]? }
+        let emote_set: PartialSet?
+        let emote_set_id: String?
+    }
 
-    func load(twitchUserID: String?) async -> [String: Emote] {
+    func load(channel: String, twitchUserID: String?) async -> [String: Emote] {
+        // Channel APIs need numeric Twitch ID, not channel login.
+        let manual = twitchUserID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let resolved = manual.isEmpty ? await resolveTwitchID(channel: channel) : manual
         async let bttvGlobal = fetchBTTVGlobal()
         async let sevenGlobal = fetchSevenTVGlobal()
         var collections = await [bttvGlobal, sevenGlobal]
-        if let id = twitchUserID, !id.isEmpty, id.allSatisfy(\.isNumber) {
+        if !resolved.isEmpty, resolved.allSatisfy(\.isNumber) {
+            let id = resolved
             async let bttvUser = fetchBTTVUser(id)
             async let sevenUser = fetchSevenTVUser(id)
             collections += await [bttvUser, sevenUser]
@@ -58,6 +66,20 @@ actor EmoteService {
             return Emote(name: e.name, url: url, source: "7TV")
         }
     }
+    private func resolveTwitchID(channel: String) async -> String {
+        let login = channel.lowercased()
+        guard login.range(of: "^[a-z0-9_]{1,25}$", options: .regularExpression) != nil,
+              let url = URL(string: "https://decapi.me/twitch/id/\(login)") else { return "" }
+        do {
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else { return "" }
+            let id = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+            return !id.isEmpty && id.allSatisfy(\.isNumber) ? id : ""
+        } catch { return "" }
+    }
+
     private func fetchBTTVGlobal() async -> [Emote] {
         convertBTTV(await get("https://api.betterttv.net/3/cached/emotes/global", as: [BTTVEmote].self) ?? [])
     }
@@ -71,6 +93,11 @@ actor EmoteService {
     }
     private func fetchSevenTVUser(_ id: String) async -> [Emote] {
         guard let user = await get("https://7tv.io/v3/users/twitch/\(id)", as: SevenTVUser.self) else { return [] }
-        return convertSevenTV(user.emote_set?.emotes ?? [])
+        if let direct = user.emote_set?.emotes, !direct.isEmpty {
+            return convertSevenTV(direct)
+        }
+        guard let setID = user.emote_set_id ?? user.emote_set?.id, !setID.isEmpty,
+              let set = await get("https://7tv.io/v3/emote-sets/\(setID)", as: SevenTVSet.self) else { return [] }
+        return convertSevenTV(set.emotes)
     }
 }
