@@ -13,7 +13,18 @@ struct ChatMessage: Identifiable {
     let text: String
     let color: String?
     let isSystem: Bool
-    init(author: String, text: String, color: String? = nil, isSystem: Bool = false) {
-        self.author = author; self.text = text; self.color = color; self.isSystem = isSystem
+    // Twitch IRC user-id tag, used by 7TV cosmetics.
+    let userID: String
+    // Twitch IRC badges tag, e.g. "moderator/1,subscriber/6".
+    let badges: [String]
+
+    init(author: String, text: String, color: String? = nil,
+         isSystem: Bool = false, userID: String = "", badges: [String] = []) {
+        self.author = author
+        self.text = text
+        self.color = color
+        self.isSystem = isSystem
+        self.userID = userID
+        self.badges = badges
     }
 }

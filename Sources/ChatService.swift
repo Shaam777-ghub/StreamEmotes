@@ -8,7 +8,6 @@ final class ChatService: ObservableObject {
     private var receiveTask: Task<Void, Never>?
     private var pingTask: Task<Void, Never>?
     private var channel = ""
-
     func connect(channel: String) {
         disconnect()
         self.channel = channel.lowercased()
@@ -42,7 +41,6 @@ final class ChatService: ObservableObject {
             self.connected = false
         }
     }
-
     private func process(_ line: String, socket: URLSessionWebSocketTask) async {
         if line.hasPrefix("PING") {
             try? await socket.send(.string(line.replacingOccurrences(of: "PING", with: "PONG", range: line.startIndex..<line.index(line.startIndex, offsetBy: 4)) + "\r\n"))
@@ -60,10 +58,14 @@ final class ChatService: ObservableObject {
         let prefix = String(line[..<range.lowerBound])
         let nick = prefix.split(separator: "!").first?.split(separator: ":").last.map(String.init) ?? "user"
         let author = fields["display-name"].flatMap { $0.isEmpty ? nil : $0 } ?? nick
-        messages.append(ChatMessage(author: author, text: text, color: fields["color"]))
+        let userID = fields["user-id"] ?? ""
+        let badges = (fields["badges"] ?? "").split(separator: ",").compactMap { entry -> String? in
+            let type = entry.split(separator: "/", maxSplits: 1).first.map(String.init) ?? ""
+            return type.isEmpty ? nil : type
+        }
+        messages.append(ChatMessage(author: author, text: text, color: fields["color"], userID: userID, badges: badges))
         if messages.count > 250 { messages.removeFirst(messages.count - 250) }
     }
-
     func disconnect() {
         receiveTask?.cancel(); receiveTask = nil
         pingTask?.cancel(); pingTask = nil
