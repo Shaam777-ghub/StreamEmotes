@@ -1,6 +1,7 @@
 import SwiftUI
 import WebKit
 import Security
+import SafariServices
 
 @main
 struct StreamEmotesApp: App {
@@ -36,6 +37,7 @@ struct ClientView: UIViewRepresentable {
 final class Host: NSObject, WKScriptMessageHandler, WKNavigationDelegate, URLSessionTaskDelegate {
     weak var webView: WKWebView?
     private var playerView: WKWebView?
+    private weak var authBrowser: SFSafariViewController?
     private let apiHosts: Set<String> = ["api.twitch.tv", "id.twitch.tv", "api.betterttv.net", "7tv.io", "7tv.app", "api.7tv.app"]
     private let key = "com.sham.streamemotesnext.oauth"
     private lazy var session = URLSession(configuration: .ephemeral, delegate: self, delegateQueue: nil)
@@ -107,6 +109,26 @@ final class Host: NSObject, WKScriptMessageHandler, WKNavigationDelegate, URLSes
             reply(id, status == errSecSuccess, error: status == errSecSuccess ? nil : "Не удалось сохранить вход")
         case "deleteToken":
             SecItemDelete([kSecClass as String: kSecClassGenericPassword, kSecAttrAccount as String: key] as CFDictionary)
+            reply(id, true)
+        case "openAuth":
+            guard let raw = body["url"] as? String, let url = URL(string: raw),
+                  url.scheme == "https", url.user == nil, url.password == nil,
+                  ["www.twitch.tv", "twitch.tv", "id.twitch.tv"].contains(url.host ?? "") else {
+                reply(id, false, error: "Неверный адрес входа Twitch"); return
+            }
+            guard authBrowser == nil, var presenter = webView?.window?.rootViewController else {
+                reply(id, false, error: "Окно входа уже открыто или недоступно"); return
+            }
+            while let presented = presenter.presentedViewController { presenter = presented }
+            let browser = SFSafariViewController(url: url)
+            browser.preferredControlTintColor = .systemPurple
+            browser.dismissButtonStyle = .done
+            authBrowser = browser
+            presenter.present(browser, animated: true)
+            reply(id, true)
+        case "closeAuth":
+            authBrowser?.dismiss(animated: true)
+            authBrowser = nil
             reply(id, true)
         case "open":
             guard let raw = body["url"] as? String, let url = URL(string: raw), url.scheme == "https",
