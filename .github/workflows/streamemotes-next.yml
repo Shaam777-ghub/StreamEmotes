@@ -66,3 +66,5 @@ jobs:
           name: StreamEmotesNext-Simulator
           path: StreamEmotesNext/build/Build/Products/Debug-iphonesimulator/StreamEmotesNext.app
           if-no-files-found: error
+
+# Retry simulator launch after the previous macOS job remained queued.
