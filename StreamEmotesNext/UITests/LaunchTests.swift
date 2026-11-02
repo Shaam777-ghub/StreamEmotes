@@ -25,4 +25,40 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(heading.exists)
         XCTAssertEqual(app.state, .runningForeground)
     }
+    func testGuestStreamAndChat() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launch()
+        let query = app.textFields["Поиск каналов"].firstMatch
+        XCTAssertTrue(query.waitForExistence(timeout: 45))
+        query.tap()
+        query.typeText("xqc")
+        app.buttons["Найти"].firstMatch.tap()
+        let player = app.webViews["TwitchPlayer"]
+        XCTAssertTrue(player.waitForExistence(timeout: 30), "Native remote player missing")
+        let chat = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Чат подключён")).firstMatch
+        XCTAssertTrue(chat.waitForExistence(timeout: 60), "Real guest IRC connection failed")
+        let count = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label != %@", "Сообщений: ", "Сообщений: 0")).firstMatch
+        let received = count.waitForExistence(timeout: 90)
+        let play = player.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@", "play", "воспроизвести")).firstMatch
+        if play.waitForExistence(timeout: 15) { play.tap() }
+        else { player.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
+        // Allow the real network player to show video or its actual error state.
+        let delay = expectation(description: "Player network response")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { delay.fulfill() }
+        wait(for: [delay], timeout: 20)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Simulator-Real-Stream-Chat"
+        shot.lifetime = .keepAlways
+        add(shot)
+        XCTAssertTrue(received, "No real messages received during observation window")
+        app.buttons["Смайлики"].firstMatch.tap()
+        let emotes = XCTAttachment(screenshot: app.screenshot())
+        emotes.name = "Simulator-Real-Stream-Emotes"
+        emotes.lifetime = .keepAlways
+        add(emotes)
+        app.buttons["‹ Назад"].firstMatch.tap()
+        XCTAssertFalse(player.exists, "Player must be removed on leaving channel")
+    }
+
 }
