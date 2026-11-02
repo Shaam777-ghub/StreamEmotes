@@ -23,8 +23,21 @@ targets:
     settings:
       base:
         INFOPLIST_KEY_CFBundleDisplayName: StreamEmotes
+  StreamEmotesNextUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: StreamEmotesNext
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sham.streamemotesnext.uitests
+        TEST_TARGET_NAME: StreamEmotesNext
 schemes:
   StreamEmotesNext:
     build:
       targets:
         StreamEmotesNext: all
+    test:
+      targets:
+        - StreamEmotesNextUITests

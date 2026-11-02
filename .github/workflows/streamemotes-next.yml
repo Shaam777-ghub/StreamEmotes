@@ -45,6 +45,20 @@ jobs:
         run: |
           test -f build/Build/Products/Debug-iphonesimulator/StreamEmotesNext.app/Web/index.html
           test -f build/Build/Products/Debug-iphonesimulator/StreamEmotesNext.app/Web/app.js
+      - name: Run app in iPhone Simulator
+        timeout-minutes: 10
+        run: |
+          xcrun simctl list devices available --json > /tmp/next-devices.json
+          SIMULATOR_ID=$(python3 -c 'import json; d=json.load(open("/tmp/next-devices.json")); print(next(v["udid"] for devices in d["devices"].values() for v in devices if v.get("isAvailable") and v["name"].startswith("iPhone")))')
+          echo "Selected simulator: $SIMULATOR_ID"
+          xcodebuild -project StreamEmotesNext.xcodeproj -scheme StreamEmotesNext -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 -derivedDataPath build -resultBundlePath SimulatorResults.xcresult CODE_SIGNING_ALLOWED=NO test
+      - name: Save simulator test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: StreamEmotesNext-Simulator-Tests
+          path: StreamEmotesNext/SimulatorResults.xcresult
+          if-no-files-found: warn
       - name: Build for iPhone without signing
         run: xcodebuild -project StreamEmotesNext.xcodeproj -scheme StreamEmotesNext -sdk iphoneos -configuration Release -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO build
       - uses: actions/upload-artifact@v4
