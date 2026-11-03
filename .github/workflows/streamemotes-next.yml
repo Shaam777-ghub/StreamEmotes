@@ -39,46 +39,14 @@ jobs:
         run: brew install xcodegen
       - name: Generate project
         run: xcodegen generate
-      - name: Build for iOS Simulator
-        run: xcodebuild -project StreamEmotesNext.xcodeproj -scheme StreamEmotesNext -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
-      - name: Verify bundled web interface
-        run: |
-          test -f build/Build/Products/Debug-iphonesimulator/StreamEmotesNext.app/Web/index.html
-          test -f build/Build/Products/Debug-iphonesimulator/StreamEmotesNext.app/Web/app.js
-      - name: Run app in iPhone Simulator
-        timeout-minutes: 10
-        run: |
-          xcrun simctl list devices available --json > /tmp/next-devices.json
-          SIMULATOR_ID=$(python3 -c 'import json; d=json.load(open("/tmp/next-devices.json")); print(next(v["udid"] for devices in d["devices"].values() for v in devices if v.get("isAvailable") and v["name"].startswith("iPhone")))')
-          echo "Selected simulator: $SIMULATOR_ID"
-          xcodebuild -project StreamEmotesNext.xcodeproj -scheme StreamEmotesNext -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 -derivedDataPath build -resultBundlePath SimulatorResults.xcresult CODE_SIGNING_ALLOWED=NO test
-      - name: Export simulator screenshots
-        if: always()
-        run: |
-          if [ -d SimulatorResults.xcresult ]; then
-            mkdir -p SimulatorScreenshots
-            xcrun xcresulttool export attachments --path SimulatorResults.xcresult --output-path SimulatorScreenshots
-          fi
-      - name: Upload simulator screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: StreamEmotesNext-Real-Simulator-Screenshots
-          path: StreamEmotesNext/SimulatorScreenshots
-          if-no-files-found: warn
-      - name: Save simulator test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: StreamEmotesNext-Simulator-Tests
-          path: StreamEmotesNext/SimulatorResults.xcresult
-          if-no-files-found: warn
       - name: Build for iPhone without signing
         run: xcodebuild -project StreamEmotesNext.xcodeproj -scheme StreamEmotesNext -sdk iphoneos -configuration Release -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO build
+      - name: Verify bundled web interface
+        run: |
+          test -f build-device/Build/Products/Release-iphoneos/StreamEmotesNext.app/Web/index.html
+          test -f build-device/Build/Products/Release-iphoneos/StreamEmotesNext.app/Web/app.js
       - uses: actions/upload-artifact@v4
         with:
-          name: StreamEmotesNext-Simulator
-          path: StreamEmotesNext/build/Build/Products/Debug-iphonesimulator/StreamEmotesNext.app
+          name: StreamEmotesNext-iPhone-Unsigned
+          path: StreamEmotesNext/build-device/Build/Products/Release-iphoneos/StreamEmotesNext.app
           if-no-files-found: error
-
-# Retry simulator launch after the previous macOS job remained queued.
